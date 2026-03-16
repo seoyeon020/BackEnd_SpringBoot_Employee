@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static com.employee.api.service.common.CommonService.getNotFoundExceptionSupplier;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -28,10 +30,9 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = EmployeeMapper.mapToEmployee(employeeDto);
         //Department의 존재여부를 조회
         Department department = departmentRepository.findById(employeeDto.getDepartmentId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Department is not exists with id: " +
-                                employeeDto.getDepartmentId(),
-                                HttpStatus.NOT_FOUND));
+                .orElseThrow(getNotFoundExceptionSupplier("Department is not exists with id: ",
+                                employeeDto.getDepartmentId())
+                );
         //Employee와 Department 연결
         employee.setDepartment(department);
         //Employee 등록
@@ -40,28 +41,79 @@ public class EmployeeServiceImpl implements EmployeeService {
         return EmployeeMapper.mapToEmployeeDto(savedEmployee);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public EmployeeDto getEmployeeById(Long employeeId) {
-        return null;
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(getNotFoundExceptionSupplier(
+                                "Employee is not exists with given id : ",
+                        employeeId));
+
+        return EmployeeMapper.mapToEmployeeDto(employee);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<EmployeeDto> getAllEmployees() {
-        return List.of();
+        List<Employee> employees = employeeRepository.findAll();
+        return employees.stream()
+                .map(EmployeeMapper::mapToEmployeeDepartmentDto)
+                .toList();
+        //.map((employee) -> EmployeeMapper.mapToEmployeeDto(employee))
+        //.collect(Collectors.toList());
     }
 
     @Override
     public List<EmployeeDto> getAllEmployeesDepartment() {
-        return List.of();
+        List<Employee> employees = employeeRepository.findAllWithDepartment();
+        return employees.stream()
+                .map(EmployeeMapper::mapToEmployeeDepartmentDto)
+                .toList();
     }
 
     @Override
     public EmployeeDto updateEmployee(Long employeeId, EmployeeDto updatedEmployee) {
-        return null;
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(getNotFoundExceptionSupplier(
+                                "Employee is not exists with given id: ",
+                        employeeId));
+
+        //setter 호출로 값 변경
+        employee.setFirstName(updatedEmployee.getFirstName());
+        employee.setLastName(updatedEmployee.getLastName());
+        employee.setEmail(updatedEmployee.getEmail());
+
+        Department department = departmentRepository.findById(updatedEmployee.getDepartmentId())
+                .orElseThrow(getNotFoundExceptionSupplier(
+                                "Department is not exists with id: ",
+                        updatedEmployee.getDepartmentId()
+                        ));
+        //Employee와 Department 연결
+        employee.setDepartment(department);
+
+        Employee updatedEmployeeObj = employeeRepository.save(employee);
+
+        return EmployeeMapper.mapToEmployeeDto(updatedEmployeeObj);
     }
 
     @Override
     public void deleteEmployee(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(getNotFoundExceptionSupplier(
+                        "Employee is not exists with given id: ",
+                        employeeId));
 
+        employeeRepository.delete(employee);
     }
+
+    @Override
+    public EmployeeDto getEmployeeByEmail(String email) {
+        return employeeRepository.findByEmail(email)
+                //.map(entity -> EmployeeMapper.mapToEmployeeDepartmentDto(entity));
+                .map(EmployeeMapper::mapToEmployeeDepartmentDto)
+                .orElseThrow(getNotFoundExceptionSupplier(
+                        "Employee is not exists with given email: ", email
+                ));
+    }
+
 }
