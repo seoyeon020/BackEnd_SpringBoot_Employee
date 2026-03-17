@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     // 1. 이메일로 직원 찾기 (unique 제약조건 대응)
-    @Query("SELECT e FROM Employee a WHERE e.email = :email")
+    @Query("SELECT e FROM Employee e WHERE e.email = :email")
     Optional<Employee> findByEmail(@Param("email") String email);
 
     // 2. 성(lastName)이 일치하는 모든 직원 찾기
