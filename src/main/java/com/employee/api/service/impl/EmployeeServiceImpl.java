@@ -57,7 +57,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public List<EmployeeDto> getAllEmployees() {
         List<Employee> employees = employeeRepository.findAll();
         return employees.stream()
-                .map(EmployeeMapper::mapToEmployeeDepartmentDto)
+                .map(EmployeeMapper::mapToEmployeeDto)
                 .toList();
         //.map((employee) -> EmployeeMapper.mapToEmployeeDto(employee))
         //.collect(Collectors.toList());
