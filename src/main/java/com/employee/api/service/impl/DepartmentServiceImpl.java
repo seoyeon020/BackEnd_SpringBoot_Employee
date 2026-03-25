@@ -1,11 +1,16 @@
 package com.employee.api.service.impl;
 
 import com.employee.api.dto.DepartmentDto;
+import com.employee.api.dto.PageResponse;
 import com.employee.api.entity.Department;
 import com.employee.api.mapper.DepartmentMapper;
 import com.employee.api.repository.DepartmentRepository;
 import com.employee.api.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +65,38 @@ public class DepartmentServiceImpl implements DepartmentService {
         //Stream<DepartmentDto> => List<DepartmentDto>
                 .toList();
     }
+
+    /*
+    pageNo - 페이지 번호 (0부터 시작),
+    pageSize - 페이지당 데이터 수
+    sortBy - 정렬 기준 컬럼: `id`, `departmentName`, `departmentDescription`
+    sortDir - 정렬 방향: `asc` / `desc`
+ */
+    @Override
+    public PageResponse<DepartmentDto> getDepartmentsPage(int pageNo, int pageSize, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+        Page<Department> page = departmentRepository.findAll(pageable);
+
+        //List<Department> => List<DepartmentDto> 로 변환
+        List<DepartmentDto> content = page.getContent()
+                .stream()
+                .map(DepartmentMapper::mapToDepartmentDto)
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
+
 
     @Override
     public DepartmentDto updateDepartment(Long departmentId, DepartmentDto updatedDepartment) {
