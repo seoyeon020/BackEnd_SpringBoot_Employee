@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,11 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    @GetMapping("/welcome")
+    public String welcome() {
+        return "Welcome this endpoint is not secure";
+    }
+
     // Build Add Employee REST API
     @PostMapping
     public ResponseEntity<EmployeeDto> createEmployee(@Valid @RequestBody EmployeeDto employeeDto){
@@ -27,6 +33,7 @@ public class EmployeeController {
 
     // Build Get Employee REST API
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<EmployeeDto> getEmployeeById(@PathVariable("id") Long employeeId){
         EmployeeDto employeeDto = employeeService.getEmployeeById(employeeId);
         return ResponseEntity.ok(employeeDto);
@@ -34,6 +41,7 @@ public class EmployeeController {
 
     // Build Get All Employees REST API
     @GetMapping
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<EmployeeDto>> getAllEmployees(){
         List<EmployeeDto> employees = employeeService.getAllEmployees();
         return ResponseEntity.ok(employees);
@@ -61,6 +69,7 @@ public class EmployeeController {
     }
 
     @GetMapping("/email/{email}")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<EmployeeDto> getEmployeeByEmail(@PathVariable String email) {
         EmployeeDto employeeDto = employeeService.getEmployeeByEmail(email);
         return ResponseEntity.ok(employeeDto);
@@ -68,6 +77,7 @@ public class EmployeeController {
 
     //http://localhost:8080/api/employees/page?pageNo=0&pageSize=5&sortBy=id&sortDir=asc
     @GetMapping("/page")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<PageResponse<EmployeeDto>> getEmployeesPage(
             @RequestParam(defaultValue = "0") int pageNo,
             @RequestParam(defaultValue = "10") int pageSize,
