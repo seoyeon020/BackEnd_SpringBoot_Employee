@@ -4,11 +4,14 @@ import com.employee.api.auth.userinfo.UserInfoUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -28,24 +31,45 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/employees/welcome","/userinfos/new").permitAll()
+                    auth.requestMatchers("/api/employees/welcome","/userinfos/new", "/userinfos/login").permitAll()
                             .requestMatchers("/api/**").authenticated();
                 })
-                .formLogin(withDefaults())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
 
+    /**
+     * UserDetailsService 빈 등록
+     * UserInfoUserDetailsService: 이메일로 DB를 조회하여 UserDetails 반환
+     */
     @Bean
     public UserDetailsService userDetailsService() {
         return new UserInfoUserDetailsService();
     }
 
+    /**
+     * AuthenticationManager 빈 등록
+     * UserInfoController의 로그인 처리에서 직접 주입받아 사용
+     * AuthenticationConfiguration이 내부적으로 등록된 AuthenticationProvider를 조합하여 반환
+     */
     @Bean
     public AuthenticationProvider authenticationProvider(){
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
         authenticationProvider.setUserDetailsService(userDetailsService());
         authenticationProvider.setPasswordEncoder(passwordEncoder);
         return authenticationProvider;
+    }
+
+    /**
+     * AuthenticationManager 빈 등록
+     * UserInfoController의 로그인 처리에서 직접 주입받아 사용
+     * AuthenticationConfiguration이 내부적으로 등록된 AuthenticationManager를 반환
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+            throws Exception {
+        return config.getAuthenticationManager();
     }
 
 }
