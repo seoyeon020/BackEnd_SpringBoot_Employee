@@ -1,6 +1,8 @@
 package com.employee.api.auth.config;
 
+import com.employee.api.auth.filter.JwtAuthenticationFilter;
 import com.employee.api.auth.userinfo.UserInfoUserDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,15 +19,19 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+
+    private final PasswordEncoder passwordEncoder;
+    //JwtAuthenticationFilter: 요청마다 JWT 토큰을 검출하는 커스텀 필터
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -36,6 +42,11 @@ public class SecurityConfig {
                 })
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // DB 기반 인증 프로바이더 등록
+                .authenticationProvider(authenticationProvider())
+                // JwtAuthenticationFilter를 UsernamePasswordAuthenticationFilter 앞에 삽입
+                // → 폼 로그인 필터보다 먼저 JWT 토큰을 검증하여 SecurityContext에 인증 정보 설정
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
