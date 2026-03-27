@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,14 +31,17 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-
     private final PasswordEncoder passwordEncoder;
-    //JwtAuthenticationFilter: 요청마다 JWT 토큰을 검출하는 커스텀 필터
+    // JwtAuthenticationFilter: 요청마다 JWT 토큰을 검증하는 커스텀 필터
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
+                // CORS 활성화: CorsConfigurationSource 빈(prod) 또는 MVC CORS 설정(local)을 자동 참조
+                // Spring Security 필터 체인 내에서 preflight(OPTIONS) 요청을 처리하므로
+                // FilterRegistrationBean보다 먼저 실행되는 문제를 해결
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/api/employees/welcome","/userinfos/new", "/userinfos/login").permitAll()
                             .requestMatchers("/api/**").authenticated();
@@ -45,7 +49,7 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
-                        // authenticationEntryPoint: 토큰 없이 인증 필요 경로 접근 시 호출 → 401 JSON 반환
+                        // authenticationEntryPoint: 토큰 없이 인증 필요한 경로 접근 시 호출 → 401 JSON 반환
                         // 기본값은 HTML 에러 페이지이므로 REST API용 JSON 응답으로 교체
                         .authenticationEntryPoint((request, response, e) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
